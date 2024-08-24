@@ -1,6 +1,7 @@
 const { Connection, PublicKey, Keypair } = require('@solana/web3.js');
 const { Jupiter } = require('@jup-ag/core');
 const bs58 = require('bs58');
+const { default: cluster } = require('cluster');
 
 // Configuration
 const RPC_URL = 'https://api.mainnet-beta.solana.com';
@@ -10,11 +11,35 @@ const SECRET_KEY_STRING = 'PRIVATE-KEY-WALLET';
 let wallet, jupiter;
 
 const LAMPORTS = 1_000_000_000;
+const MAXRETRIES = 5;
 
 const 
     AMOUNT = 0.01,
     FROM_ADDRESS = 'So11111111111111111111111111111111111111112',
     TO_ADDRESS = '9oUXhgFmW2HWqWHds1NoV3DKLY3AAtNevA3dP7PtyEbr';
+
+async function loadJupiterConnectionWithRetries(connection, wallet) {
+    let attempt = 0, delay = 1000;
+    while ( attempt < MAXRETRIES ) {
+        try {
+            console.log(`Attempting to Load Jupiter Client : ${attempt + 1}`);
+            const jupiter = await Jupiter.load({
+                connection,
+                cluster: 'mainnet-beta',
+                user: wallet
+            });
+            console.log("Jupiter Client loaded Successfully.");
+            return jupiter;
+        } catch (error) {
+            console.log("Failed to Load Jupiter Client: ", error.message);
+            if (error.message.includes("429")) {
+                attempt ++;
+                console.log(`Waiting for ${delay / 1000} seconds for retrying...`);
+                
+            }
+        }
+    }
+}
 
 async function checkBalance(publicKey) {
     try {
