@@ -2,6 +2,7 @@ const { Connection, PublicKey, Keypair } = require('@solana/web3.js');
 const { Jupiter } = require('@jup-ag/core');
 const bs58 = require('bs58');
 const { default: cluster } = require('cluster');
+const { resolve } = require('path');
 
 // Configuration
 const RPC_URL = 'https://api.mainnet-beta.solana.com';
@@ -35,10 +36,14 @@ async function loadJupiterConnectionWithRetries(connection, wallet) {
             if (error.message.includes("429")) {
                 attempt ++;
                 console.log(`Waiting for ${delay / 1000} seconds for retrying...`);
-                
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+            } else {
+                throw error;
             }
         }
     }
+    throw new Error('Failed to load Jupiter client after Max Retries.');
 }
 
 async function checkBalance(publicKey) {
